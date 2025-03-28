@@ -1,36 +1,39 @@
-name: Update Backlog Task
+name: Backlog Issue Status Update
 
 on:
   pull_request:
     types: [closed]
 
 jobs:
-  update-task:
-    if: github.event.pull_request.merged == true
+  update-backlog-ticket:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
+      - name: Extract Backlog Issue Key
+        id: extract-issue-key
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Extract Backlog issue key (e.g., PROJECT-123) from PR title
+          issue_key=$(echo "$PR_TITLE" | grep -oP '[A-Z]+-\d+')
+          echo "Extracted Issue Key: $issue_key"
+          echo "issue_key=$issue_key" >> $GITHUB_OUTPUT
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Extract issue key from branch
-        id: extract_key
-        run: echo "ISSUE_KEY=$(echo ${GITHUB_HEAD_REF} | grep -oE '[A-Z]+-[0-9]+')" >> $GITHUB_ENV
-
-      - name: Update Backlog Task
+      - name: Update Backlog Issue Status
+        if: steps.extract-issue-key.outputs.issue_key != ''
         env:
           BACKLOG_API_KEY: ${{ secrets.BACKLOG_API_KEY }}
+          BACKLOG_ISSUE_KEY: ${{ steps.extract-issue-key.outputs.issue_key }}
         run: |
-          if [ -z "$ISSUE_KEY" ]; then
-            echo "⚠️ Không tìm thấy Issue Key trong branch, bỏ qua cập nhật Backlog."
-          else
-            node update-backlog.js $ISSUE_KEY
-          fi
+          # Assuming status ID 3 represents "Resolved" - adjust as needed
+          resolved_status_id=3
+          
+          curl -X PATCH \
+            "https://teq-dev.backlog.com/api/v2/issues/${BACKLOG_ISSUE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"statusId\": ${resolved_status_id}
+            }" \
+            -H "X-Backlog-API-Key: ${BACKLOG_API_KEY}"
