@@ -1,0 +1,17 @@
+{
+  "name": "github-backlog-integration",
+  "version": "1.0.0",
+  "description": "Integration between GitHub and Backlog to update task status on PR merge.",
+  "main": "src/update-status.js",
+  "scripts": {
+    "start": "node src/update-status.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "dotenv": "^10.0.0"
+  },
+  "devDependencies": {},
+  "author": "",
+  "license": "ISC"
+}
