@@ -1,0 +1,36 @@
+name: Update Backlog Task
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  update-task:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v18
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Extract issue key from branch
+        id: extract_key
+        run: echo "ISSUE_KEY=$(echo ${GITHUB_HEAD_REF} | grep -oE '[A-Z]+-[0-9]+')" >> $GITHUB_ENV
+
+      - name: Update Backlog Task
+        env:
+          BACKLOG_API_KEY: ${{ secrets.BACKLOG_API_KEY }}
+        run: |
+          if [ -z "$ISSUE_KEY" ]; then
+            echo "⚠️ Không tìm thấy Issue Key trong branch, bỏ qua cập nhật Backlog."
+          else
+            node update-backlog.js $ISSUE_KEY
+          fi
