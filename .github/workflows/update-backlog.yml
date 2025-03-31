@@ -2,7 +2,7 @@ name: Backlog Issue Status Update
 
 on:
   pull_request:
-    types: [closed]
+    types: [closed, opened, reopened]
 
 jobs:
   update-backlog-ticket:
@@ -17,12 +17,29 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # Extract Backlog issue key (e.g., PROJECT-123) from PR title
-          issue_key=$(echo "$PR_TITLE" | grep -oP '[A-Z]+-\d+')
+          issue_key=$(echo "$PR_TITLE" | grep -oE '[A-Z]+-[0-9]+'')
           echo "Extracted Issue Key: $issue_key"
           echo "issue_key=$issue_key" >> $GITHUB_OUTPUT
 
+      # Comment on Backlog Ticket (on PR creation)
+      - name: Comment on Backlog Ticket (on PR creation)
+        if: ${{ github.event.action == 'opened'}}
+        env:
+          BACKLOG_API_KEY: ${{ secrets.BACKLOG_API_KEY }}
+          BACKLOG_ISSUE_KEY: ${{ steps.extract-issue-key.outputs.issue_key }}
+        run: |
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          COMMENT="Pull Request Created: [$PR_TITLE]($PR_URL)"
+          curl -X POST \
+            -H "Authorization: Bearer $BACKLOG_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"$COMMENT\"}" \
+            "https://kietdo.backlog.com/api/v2/issues/${BACKLOG_ISSUE_KEY}/comments"
+
+      # Update Backlog Issue Status
       - name: Update Backlog Issue Status
-        if: steps.extract-issue-key.outputs.issue_key != ''
+        if: steps.extract-issue-key.outputs.issue_key != '' && github.event.pull_request.merged == true
         env:
           BACKLOG_API_KEY: ${{ secrets.BACKLOG_API_KEY }}
           BACKLOG_ISSUE_KEY: ${{ steps.extract-issue-key.outputs.issue_key }}
