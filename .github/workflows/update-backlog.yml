@@ -35,7 +35,7 @@ jobs:
             -H "Authorization: Bearer $BACKLOG_API_KEY" \
             -H "Content-Type: application/json" \
             -d "{\"content\": \"$COMMENT\"}" \
-            "https://kietdo.backlog.com/api/v2/issues/${BACKLOG_ISSUE_KEY}/comments"
+            "https://kietdo.backlog.com/api/v2/issues/${BACKLOG_ISSUE_KEY}/comments?apiKey=${BACKLOG_API_KEY}"
 
       # Update Backlog Issue Status
       - name: Update Backlog Issue Status
