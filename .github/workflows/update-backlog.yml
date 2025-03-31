@@ -32,11 +32,12 @@ jobs:
           PR_TITLE="${{ github.event.pull_request.title }}"
           PR_AUTHOR="${{ github.event.pull_request.user.login }}"
           PR_MERGE_BY="${{ github.event.pull_request.merged_by.login }}"
+          PR_CLOSE_BY="${{ github.event.pull_request.closed_by.login }}"
 
           if [ "${{ github.event.pull_request.merged }}" == "true" ]; then
             COMMENT="Pull Request Merged: [$PR_TITLE]($PR_URL) by $PR_MERGE_BY"
           elif [ "${{ github.event.action }}" == "closed" ]; then
-            COMMENT="Pull Request Closed: [$PR_TITLE]($PR_URL) by $PR_MERGE_BY"
+            COMMENT="Pull Request Closed: [$PR_TITLE]($PR_URL) by $PR_CLOSE_BY"
           else
             COMMENT="Pull Request Created: [$PR_TITLE]($PR_URL) by $PR_AUTHOR"
           fi
