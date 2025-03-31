@@ -31,7 +31,7 @@ jobs:
           resolved_status_id=3
           
           curl -X PATCH \
-            "https://teq-dev.backlog.com/api/v2/issues/${BACKLOG_ISSUE_KEY}" \
+            "https://kietdo.backlog.com/api/v2/issues/${BACKLOG_ISSUE_KEY}" \
             -H "Content-Type: application/json" \
             -d "{
               \"statusId\": ${resolved_status_id}
