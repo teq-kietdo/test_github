@@ -17,7 +17,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # Extract Backlog issue key (e.g., PROJECT-123) from PR title
-          issue_key=$(echo "$PR_TITLE" | grep -oE '[A-Z]+-[0-9]+'')
+          issue_key=$(echo "$PR_TITLE" | grep -oE '[A-Z]+-[0-9]+')
           echo "Extracted Issue Key: $issue_key"
           echo "issue_key=$issue_key" >> $GITHUB_OUTPUT
 
