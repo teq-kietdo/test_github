@@ -47,7 +47,7 @@ jobs:
 
       # Update Backlog Issue Status
       - name: Update Backlog Issue Status
-        if: steps.extract-issue-key.outputs.issue_key != '' && ( github.event.action == 'closed' || github.event.pull_request.merged )
+        if: steps.extract-issue-key.outputs.issue_key != '' && ( github.event.action == 'closed' || github.event.pull_request.merged == true )
         env:
           BACKLOG_API_KEY: ${{ secrets.BACKLOG_API_KEY }}
           BACKLOG_ISSUE_KEY: ${{ steps.extract-issue-key.outputs.issue_key }}
