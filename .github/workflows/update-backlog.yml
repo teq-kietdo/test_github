@@ -23,7 +23,7 @@ jobs:
 
       # Comment on Backlog Ticket (on PR creation)
       - name: Comment on Backlog Ticket (on PR creation)
-        if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
+        # if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
         env:
           BACKLOG_API_KEY: ${{ secrets.BACKLOG_API_KEY }}
           BACKLOG_ISSUE_KEY: ${{ steps.extract-issue-key.outputs.issue_key }}
@@ -31,16 +31,23 @@ jobs:
           PR_URL="${{ github.event.pull_request.html_url }}"
           PR_TITLE="${{ github.event.pull_request.title }}"
           PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          COMMENT="Pull Request Created: [$PR_TITLE]($PR_URL) by $PR_AUTHOR"
+          PR_MERGE_BY="${{ github.event.pull_request.merged_by.login }}"
+
+          if [ "${{ github.event.pull_request.merged }}" == "true" ]; then
+            COMMENT="Pull Request Merged: [$PR_TITLE]($PR_URL) by $PR_MERGE_BY"
+          else if [ "${{ github.event.action }}" == "closed" ]; then
+            COMMENT="Pull Request Closed: [$PR_TITLE]($PR_URL) by $PR_MERGE_BY"
+          else
+            COMMENT="Pull Request Created: [$PR_TITLE]($PR_URL) by $PR_AUTHOR"
+
           curl -X POST \
-            -H "Authorization: Bearer $BACKLOG_API_KEY" \
             -H "Content-Type: application/json" \
             -d "{\"content\": \"$COMMENT\"}" \
             "https://kietdo.backlog.com/api/v2/issues/${BACKLOG_ISSUE_KEY}/comments?apiKey=${BACKLOG_API_KEY}"
 
       # Update Backlog Issue Status
       - name: Update Backlog Issue Status
-        if: steps.extract-issue-key.outputs.issue_key != '' && github.event.pull_request.merged == true
+        if: steps.extract-issue-key.outputs.issue_key != '' && ( github.event.action == 'closed' || github.event.pull_request.merged )
         env:
           BACKLOG_API_KEY: ${{ secrets.BACKLOG_API_KEY }}
           BACKLOG_ISSUE_KEY: ${{ steps.extract-issue-key.outputs.issue_key }}
