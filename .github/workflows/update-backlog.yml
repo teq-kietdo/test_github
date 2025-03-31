@@ -33,7 +33,7 @@ jobs:
           PR_AUTHOR="${{ github.event.pull_request.user.login }}"
           PR_MERGE_BY="${{ github.event.pull_request.merged_by.login }}"
           PR_CLOSE_BY="${{ github.event.pull_request.closed_by.login }}"
-          echo "The PR was merged by: ${{ github.event.pull_request }}"
+          echo "The PR was merged by: ${{ toJson( github.event.pull_request) }}"
 
           if [ "${{ github.event.pull_request.merged }}" == "true" ]; then
             COMMENT="Pull Request Merged: [$PR_TITLE]($PR_URL) by $PR_MERGE_BY"
@@ -56,10 +56,10 @@ jobs:
         run: |
           # Assuming status ID 3 represents "Resolved" - adjust as needed
           resolved_status_id=3
-          
+
           curl -X PATCH \
             "https://kietdo.backlog.com/api/v2/issues/${BACKLOG_ISSUE_KEY}?apiKey=${BACKLOG_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "{
               \"statusId\": ${resolved_status_id}
-            }" 
+            }"
