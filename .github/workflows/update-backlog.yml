@@ -2,7 +2,7 @@ name: Backlog Issue Status Update
 
 on:
   pull_request:
-    types: [closed]
+    types: [closed, opened, reopened]
 
 jobs:
   update-backlog-ticket:
