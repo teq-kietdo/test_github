@@ -35,11 +35,11 @@ jobs:
 
           if [ "${{ github.event.pull_request.merged }}" == "true" ]; then
             COMMENT="Pull Request Merged: [$PR_TITLE]($PR_URL) by $PR_MERGE_BY"
-          else if [ "${{ github.event.action }}" == "closed" ]; then
+          elif [ "${{ github.event.action }}" == "closed" ]; then
             COMMENT="Pull Request Closed: [$PR_TITLE]($PR_URL) by $PR_MERGE_BY"
           else
             COMMENT="Pull Request Created: [$PR_TITLE]($PR_URL) by $PR_AUTHOR"
-
+          fi
           curl -X POST \
             -H "Content-Type: application/json" \
             -d "{\"content\": \"$COMMENT\"}" \
