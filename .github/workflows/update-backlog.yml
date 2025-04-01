@@ -21,6 +21,33 @@ jobs:
           echo "Extracted Issue Key: $issue_key"
           echo "issue_key=$issue_key" >> $GITHUB_OUTPUT
 
+      # Get proper closer information
+      - name: Get PR Closer Info
+        id: get-closer
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const action = context.payload.action;
+
+            let closerInfo = '';
+
+            if (action === 'opened' || action === 'reopened') {
+              // For opened/reopened PRs, use the PR creator
+              closerInfo = pr.user.login;
+            } else if (action === 'closed') {
+              if (pr.merged === true && pr.merged_by) {
+                // For merged PRs, use the merger
+                closerInfo = pr.merged_by.login;
+              } else {
+                // For PRs closed without merging, use the sender
+                closerInfo = context.payload.sender.login;
+              }
+            }
+
+            core.setOutput('closer', closerInfo);
+            console.log(`PR action: ${action}, performed by: ${closerInfo}`);
+
       # Comment on Backlog Ticket (on PR creation)
       - name: Comment on Backlog Ticket (on PR creation)
         # if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
@@ -32,13 +59,12 @@ jobs:
           PR_TITLE="${{ github.event.pull_request.title }}"
           PR_AUTHOR="${{ github.event.pull_request.user.login }}"
           PR_MERGE_BY="${{ github.event.pull_request.merged_by.login }}"
-          PR_CLOSE_BY="${{ github.event.pull_request.closed_by.login }}"
-          echo "The PR was merged by: ${{ toJson( github.event.pull_request) }}"
+          CLOSER="${{ steps.get-closer.outputs.closer }}"
 
           if [ "${{ github.event.pull_request.merged }}" == "true" ]; then
             COMMENT="Pull Request Merged: [$PR_TITLE]($PR_URL) by $PR_MERGE_BY"
           elif [ "${{ github.event.action }}" == "closed" ]; then
-            COMMENT="Pull Request Closed: [$PR_TITLE]($PR_URL) by $PR_CLOSE_BY"
+            COMMENT="Pull Request Closed: [$PR_TITLE]($PR_URL) by $CLOSER"
           else
             COMMENT="Pull Request Created: [$PR_TITLE]($PR_URL) by $PR_AUTHOR"
           fi
