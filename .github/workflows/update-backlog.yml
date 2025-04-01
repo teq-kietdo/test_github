@@ -17,39 +17,75 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # Extract Backlog issue key (e.g., PROJECT-123) from PR title
-          issue_key=$(echo "$PR_TITLE" | grep -oE '[A-Z]+-[0-9]+'')
+          issue_key=$(echo "$PR_TITLE" | grep -oE '[A-Z]+-[0-9]+')
           echo "Extracted Issue Key: $issue_key"
           echo "issue_key=$issue_key" >> $GITHUB_OUTPUT
 
+      # Get proper closer information
+      - name: Get PR Closer Info
+        id: get-closer
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const action = context.payload.action;
+
+            let closerInfo = '';
+
+            if (action === 'opened' || action === 'reopened') {
+              // For opened/reopened PRs, use the PR creator
+              closerInfo = pr.user.login;
+            } else if (action === 'closed') {
+              if (pr.merged === true && pr.merged_by) {
+                // For merged PRs, use the merger
+                closerInfo = pr.merged_by.login;
+              } else {
+                // For PRs closed without merging, use the sender
+                closerInfo = context.payload.sender.login;
+              }
+            }
+
+            core.setOutput('closer', closerInfo);
+            console.log(`PR action: ${action}, performed by: ${closerInfo}`);
+
       # Comment on Backlog Ticket (on PR creation)
       - name: Comment on Backlog Ticket (on PR creation)
-        if: ${{ github.event.action == 'opened'}}
+        # if: ${{ github.event.action == 'opened' || github.event.action == 'reopened' }}
         env:
           BACKLOG_API_KEY: ${{ secrets.BACKLOG_API_KEY }}
           BACKLOG_ISSUE_KEY: ${{ steps.extract-issue-key.outputs.issue_key }}
         run: |
           PR_URL="${{ github.event.pull_request.html_url }}"
           PR_TITLE="${{ github.event.pull_request.title }}"
-          COMMENT="Pull Request Created: [$PR_TITLE]($PR_URL)"
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          PR_MERGE_BY="${{ github.event.pull_request.merged_by.login }}"
+          CLOSER="${{ steps.get-closer.outputs.closer }}"
+
+          if [ "${{ github.event.pull_request.merged }}" == "true" ]; then
+            COMMENT="Pull Request Merged: [$PR_TITLE]($PR_URL) by $PR_MERGE_BY"
+          elif [ "${{ github.event.action }}" == "closed" ]; then
+            COMMENT="Pull Request Closed: [$PR_TITLE]($PR_URL) by $CLOSER"
+          else
+            COMMENT="Pull Request Created: [$PR_TITLE]($PR_URL) by $PR_AUTHOR"
+          fi
           curl -X POST \
-            -H "Authorization: Bearer $BACKLOG_API_KEY" \
             -H "Content-Type: application/json" \
             -d "{\"content\": \"$COMMENT\"}" \
-            "https://kietdo.backlog.com/api/v2/issues/${BACKLOG_ISSUE_KEY}/comments"
+            "https://kietdo.backlog.com/api/v2/issues/${BACKLOG_ISSUE_KEY}/comments?apiKey=${BACKLOG_API_KEY}"
 
       # Update Backlog Issue Status
       - name: Update Backlog Issue Status
-        if: steps.extract-issue-key.outputs.issue_key != '' && github.event.pull_request.merged == true
+        if: steps.extract-issue-key.outputs.issue_key != '' && ( github.event.action == 'closed' || github.event.pull_request.merged == true )
         env:
           BACKLOG_API_KEY: ${{ secrets.BACKLOG_API_KEY }}
           BACKLOG_ISSUE_KEY: ${{ steps.extract-issue-key.outputs.issue_key }}
         run: |
           # Assuming status ID 3 represents "Resolved" - adjust as needed
           resolved_status_id=3
-          
+
           curl -X PATCH \
             "https://kietdo.backlog.com/api/v2/issues/${BACKLOG_ISSUE_KEY}?apiKey=${BACKLOG_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "{
               \"statusId\": ${resolved_status_id}
-            }" 
+            }"
